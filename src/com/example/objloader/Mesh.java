@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.opengl.GLUtils;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -27,11 +28,9 @@ public class Mesh {
 
     private Shader shader;
 
-    private int[] textureId;
+    private int textureId;
 
     private int vertexBufferId;
-
-    private int texCoodBufferId;
 
     private int vertexCount;
 
@@ -39,11 +38,10 @@ public class Mesh {
         shader = new Shader();
         shader.setProgram(getShaderString(context, vertexShaderFileName), getShaderString(context, fragmentShaderFileName));
 
-        int[] bo = new int[2];
-        glGenBuffers(2, bo, 0);
+        int[] bo = new int[1];
+        glGenBuffers(1, bo, 0);
 
         vertexBufferId = bo[0];
-        texCoodBufferId = bo[1];
 
         if (vertexBufferId == 0) {
             throw new RuntimeException("buffer object generate error.");
@@ -73,13 +71,14 @@ public class Mesh {
     }
 
     public void loadTexture(Bitmap texture) {
-        if (textureId == null) {
+        if (textureId == 0) {
             //创建纹理指针
-            textureId = new int[1];
-            glGenTextures(1, textureId, 0);
+            int[] textureIds = new int[1];
+            glGenTextures(1, textureIds, 0);
+            textureId = textureIds[0];
 
             //绑定纹理
-            glBindTexture(GL_TEXTURE_2D, textureId[0]);
+            glBindTexture(GL_TEXTURE_2D, textureId);
 
             //设置纹理滤镜
             glTexParameterf(GL_TEXTURE_2D,
@@ -103,17 +102,17 @@ public class Mesh {
 
         glUniformMatrix4fv(shader.getHandle("uProjectionM"), 1, false, projectionMatrix, 0);
 
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
+
         //纹理处理
-        glBindTexture(GL_TEXTURE_2D, textureId[0]);
-        glBindBuffer(GL_ARRAY_BUFFER, texCoodBufferId);
+        glBindTexture(GL_TEXTURE_2D, textureId);
         int aTextureCoord = this.shader.getHandle("aTextureCoord");
-        glVertexAttribPointer(aTextureCoord, 2, GL_FLOAT, false, 0, 0);
+        glVertexAttribPointer(aTextureCoord, 2, GL_FLOAT, false, 5 * 4, 3 * 4);
         glEnableVertexAttribArray(aTextureCoord);
 
         //获取shader的aPosition变量“指针”
-        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
         int aPosition = this.shader.getHandle("aPosition");
-        glVertexAttribPointer(aPosition, 3, GL_FLOAT, false, 0, 0);
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, false, 5 * 4, 0);
         glEnableVertexAttribArray(aPosition);
 
         glDrawArrays(GL_TRIANGLES, 0, vertexCount);
@@ -128,20 +127,10 @@ public class Mesh {
         vertexBuffer.position(0);
 
         glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity() * 4, vertexBuffer, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity() * 4,
+                vertexBuffer, GL_STATIC_DRAW);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-        vertexCount = vertexArray.length/3;
-    }
-
-    public void setTexCoodBuffer(float[] texCoodArray) {
-        //设置vbo
-        FloatBuffer vertexBuffer = ByteBuffer.allocateDirect(texCoodArray.length * 4).
-                order(ByteOrder.nativeOrder()).asFloatBuffer().put(texCoodArray);
-        vertexBuffer.position(0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, texCoodBufferId);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity() * 4, vertexBuffer, GL_STATIC_DRAW);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        vertexCount = vertexArray.length / (3 + 2);
     }
 }

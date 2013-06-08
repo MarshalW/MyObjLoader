@@ -2,7 +2,6 @@ package com.example.objloader;
 
 import android.app.Activity;
 import android.graphics.PixelFormat;
-import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
@@ -120,8 +119,7 @@ public class MyActivity extends Activity implements GLSurfaceView.Renderer {
             throw new RuntimeException(e);
         }
 
-        mesh.setVertexBuffer(loader.getExtVertexArray());
-        mesh.setTexCoodBuffer(loader.getTexCoodArray());
+        mesh.setVertexBuffer(loader.getVertexArray());
     }
 
     @Override

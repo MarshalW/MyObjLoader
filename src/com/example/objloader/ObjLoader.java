@@ -100,27 +100,21 @@ public class ObjLoader {
         }
     }
 
-    public float[] getExtVertexArray() {
-        float[] array = new float[vertexIndexes.size() * 3];//x,y,z
+    public float[] getVertexArray() {
+        float[] array = new float[vertexIndexes.size() * (3 + 2)];//x,y,z,u,v
 
         for (int i = 0; i < vertexIndexes.size(); i++) {
+            //vertex
             short index = vertexIndexes.get(i);
             Vertex v = vertexs.get(index);
             float[] position = v.getPosition3D();
-            System.arraycopy(position, 0, array, i * 3, position.length);
-        }
+            System.arraycopy(position, 0, array, i * (3 + 2), position.length);
 
-        return array;
-    }
-
-    public float[] getTexCoodArray() {
-        float[] array = new float[textureCoodIndexes.size() * 2];
-
-        for (int i = 0; i < textureCoodIndexes.size(); i++) {
-            short index = textureCoodIndexes.get(i);
-            Vertex v = textureCoods.get(index);
-            float[] position = v.getPosition2D();
-            System.arraycopy(position, 0, array, i * 2, position.length);
+            //texCood
+            index = textureCoodIndexes.get(i);
+            v = textureCoods.get(index);
+            position = v.getPosition2D();
+            System.arraycopy(position, 0, array, i * (3 + 2) + 3, position.length);
         }
 
         return array;
