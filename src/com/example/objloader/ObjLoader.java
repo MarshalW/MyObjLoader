@@ -1,5 +1,6 @@
 package com.example.objloader;
 
+import android.content.Context;
 import android.util.Log;
 
 import java.io.BufferedReader;
@@ -48,9 +49,8 @@ public class ObjLoader {
                 public void callback(String[] content) {
                     Vertex vertex = new Vertex();
                     vertex.x = Float.parseFloat(content[1]);
-                    vertex.y = 1-Float.parseFloat(content[2]);
+                    vertex.y = 1 - Float.parseFloat(content[2]);
                     textureCoods.add(vertex);
-                    Log.d("objloader", "tex cood: " + vertex);
                 }
             },
             new PrefixCallback() {
@@ -61,18 +61,16 @@ public class ObjLoader {
 
                 @Override
                 public void callback(String[] content) {
-                    Face face = new Face();
                     for (int i = 1; i < content.length; i++) {
                         String s = content[i];
                         String[] data = s.split("/");
-                        //假定有纹理索引
-                        short vertexIndex = (short) (Short.parseShort(data[0]) - 1);
-                        short texCoodIndex = (short) (Short.parseShort(data[1]) - 1);
-                        face.addVertex(vertexs.get(vertexIndex));
-                        face.addTexCood(textureCoods.get(texCoodIndex));
-                    }
 
-                    faces.add(face);
+                        short vertexIndex = (short) (Short.parseShort(data[0]) - 1);
+                        vertexIndexes.add(vertexIndex);
+
+                        short texCoodIndex = (short) (Short.parseShort(data[1]) - 1);
+                        textureCoodIndexes.add(texCoodIndex);
+                    }
                 }
             }
     };
@@ -81,7 +79,9 @@ public class ObjLoader {
 
     List<Vertex> textureCoods = new ArrayList<Vertex>();
 
-    List<Face> faces = new ArrayList<Face>();
+    List<Short> vertexIndexes = new ArrayList<Short>();
+
+    List<Short> textureCoodIndexes = new ArrayList<Short>();
 
     public ObjLoader(InputStream obj) {
         for (PrefixCallback prefixCallback : prefixCallbacks) {
@@ -94,31 +94,36 @@ public class ObjLoader {
                 String[] s = line.split("[ ]");
                 doCallback(s);
             }
+            reader.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public float[] getVertexArray() {
-        float[] vertexArray = new float[faces.size() * 3 * 3];
+    public float[] getExtVertexArray() {
+        float[] array = new float[vertexIndexes.size() * 3];//x,y,z
 
-        for (int i = 0; i < faces.size(); i++) {
-            Face f = faces.get(i);
-            float[] faceVertexesArray = f.getFaceVertexesArray();
-            System.arraycopy(faceVertexesArray, 0, vertexArray, i * 3 * 3, faceVertexesArray.length);
+        for (int i = 0; i < vertexIndexes.size(); i++) {
+            short index = vertexIndexes.get(i);
+            Vertex v = vertexs.get(index);
+            float[] position = v.getPosition3D();
+            System.arraycopy(position, 0, array, i * 3, position.length);
         }
-        return vertexArray;
+
+        return array;
     }
 
     public float[] getTexCoodArray() {
-        float[] texCoodArray = new float[faces.size() * 3 * 2];
+        float[] array = new float[textureCoodIndexes.size() * 2];
 
-        for (int i = 0; i < faces.size(); i++) {
-            Face f = faces.get(i);
-            float[] faceTexCoodArray = f.getFaceTexCoodArray();
-            System.arraycopy(faceTexCoodArray, 0, texCoodArray, i * 3 * 2, faceTexCoodArray.length);
+        for (int i = 0; i < textureCoodIndexes.size(); i++) {
+            short index = textureCoodIndexes.get(i);
+            Vertex v = textureCoods.get(index);
+            float[] position = v.getPosition2D();
+            System.arraycopy(position, 0, array, i * 2, position.length);
         }
-        return texCoodArray;
+
+        return array;
     }
 
     private void doCallback(String[] content) {

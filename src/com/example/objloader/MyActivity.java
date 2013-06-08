@@ -34,11 +34,9 @@ public class MyActivity extends Activity implements GLSurfaceView.Renderer {
     //模型视图投影矩阵
     private float[] mvpMatrix = new float[16];
 
-    private ObjLoader loader;
-
     private Mesh mesh;
 
-    long angle=40;
+    long angle = 40;
 
     String objName;
 
@@ -63,12 +61,6 @@ public class MyActivity extends Activity implements GLSurfaceView.Renderer {
         setContentView(surfaceView);
 
         objName = "task310";
-
-        try {
-            loader = new ObjLoader(getAssets().open(objName + ".obj"));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override
@@ -119,6 +111,17 @@ public class MyActivity extends Activity implements GLSurfaceView.Renderer {
         float near = 7;
         float far = 100;
         Matrix.frustumM(projectionMatrix, 0, left, right, bottom, top, near, far);
+
+        ObjLoader loader = null;
+
+        try {
+            loader = new ObjLoader(getAssets().open(objName + ".obj"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+        mesh.setVertexBuffer(loader.getExtVertexArray());
+        mesh.setTexCoodBuffer(loader.getTexCoodArray());
     }
 
     @Override
@@ -131,14 +134,11 @@ public class MyActivity extends Activity implements GLSurfaceView.Renderer {
         Matrix.multiplyMM(mvpMatrix, 0, viewMatrix, 0, modelMatrix, 0);
         Matrix.multiplyMM(mvpMatrix, 0, projectionMatrix, 0, mvpMatrix, 0);
 
-        mesh.setVertexBuffer(loader.getVertexArray());
-        mesh.setTexCoodBuffer(loader.getTexCoodArray());
         mesh.draw(mvpMatrix);
 
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
-
         }
 
         angle++;

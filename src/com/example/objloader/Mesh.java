@@ -12,6 +12,7 @@ import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 
 import static android.opengl.GLES20.*;
 
@@ -26,15 +27,27 @@ public class Mesh {
 
     private Shader shader;
 
-    private FloatBuffer vertexBuffer, textureCoordBuffer;
-
     private int[] textureId;
 
-    private float[] vertexes, texCoodes;
+    private int vertexBufferId;
+
+    private int texCoodBufferId;
+
+    private int vertexCount;
 
     public Mesh(Context context, String vertexShaderFileName, String fragmentShaderFileName) {
         shader = new Shader();
         shader.setProgram(getShaderString(context, vertexShaderFileName), getShaderString(context, fragmentShaderFileName));
+
+        int[] bo = new int[2];
+        glGenBuffers(2, bo, 0);
+
+        vertexBufferId = bo[0];
+        texCoodBufferId = bo[1];
+
+        if (vertexBufferId == 0) {
+            throw new RuntimeException("buffer object generate error.");
+        }
     }
 
     private String getShaderString(Context context, String name) {
@@ -90,41 +103,45 @@ public class Mesh {
 
         glUniformMatrix4fv(shader.getHandle("uProjectionM"), 1, false, projectionMatrix, 0);
 
-        //获取shader的aPosition变量“指针”
-        int aPosition = this.shader.getHandle("aPosition");
-        //给Shader中aPosition变量赋值（顶点缓冲）
-        glVertexAttribPointer(aPosition, 3, GL_FLOAT, false,
-                3 * 4, vertexBuffer);
-        glEnableVertexAttribArray(aPosition);
-
-        //绑定纹理
+        //纹理处理
         glBindTexture(GL_TEXTURE_2D, textureId[0]);
-
-        //设置纹理坐标
+        glBindBuffer(GL_ARRAY_BUFFER, texCoodBufferId);
         int aTextureCoord = this.shader.getHandle("aTextureCoord");
-        glVertexAttribPointer(aTextureCoord, 2, GL_FLOAT, false,
-                0, textureCoordBuffer);
+        glVertexAttribPointer(aTextureCoord, 2, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(aTextureCoord);
 
-        //绘制三角形
-        glDrawArrays(GL_TRIANGLES, 0, vertexes.length / 3);
+        //获取shader的aPosition变量“指针”
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
+        int aPosition = this.shader.getHandle("aPosition");
+        glVertexAttribPointer(aPosition, 3, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(aPosition);
+
+        glDrawArrays(GL_TRIANGLES, 0, vertexCount);
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 
-    /**
-     * 设置顶点缓冲
-     */
-    public void setVertexBuffer(float[] vertexes) {
-        this.vertexes = vertexes;
-        vertexBuffer = ByteBuffer.allocateDirect(vertexes.length * 4).
-                order(ByteOrder.nativeOrder()).asFloatBuffer().put(vertexes);
+    public void setVertexBuffer(float[] vertexArray) {
+        //设置vbo
+        FloatBuffer vertexBuffer = ByteBuffer.allocateDirect(vertexArray.length * 4).
+                order(ByteOrder.nativeOrder()).asFloatBuffer().put(vertexArray);
         vertexBuffer.position(0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, vertexBufferId);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity() * 4, vertexBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        vertexCount = vertexArray.length/3;
     }
 
-    public void setTexCoodBuffer(float[] texCoodes) {
-        this.texCoodes = texCoodes;
+    public void setTexCoodBuffer(float[] texCoodArray) {
+        //设置vbo
+        FloatBuffer vertexBuffer = ByteBuffer.allocateDirect(texCoodArray.length * 4).
+                order(ByteOrder.nativeOrder()).asFloatBuffer().put(texCoodArray);
+        vertexBuffer.position(0);
 
-        textureCoordBuffer = ByteBuffer.allocateDirect(texCoodes.length * 4)
-                .order(ByteOrder.nativeOrder()).asFloatBuffer().put(texCoodes);
-        textureCoordBuffer.position(0);
+        glBindBuffer(GL_ARRAY_BUFFER, texCoodBufferId);
+        glBufferData(GL_ARRAY_BUFFER, vertexBuffer.capacity() * 4, vertexBuffer, GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
     }
 }
